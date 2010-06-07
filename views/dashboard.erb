@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+	"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+	<title>Twitter, Muhfucka!</title>
+	<link rel="stylesheet" href="stylesheet.css" type="text/css" charset="utf-8" />
+	<script src="http://www.google.com/jsapi"></script>
+	<script src="/scripts/jaml.js" type="text/javascript" charset="utf-8"></script>
+	<script type="text/javascript" charset="utf-8">
+		google.load("jquery", "1.4.2");
+		google.load("jqueryui", "1.8.0");
+		
+		Jaml.register('tweet', function(tweet){
+			div({id: 'tweet_' + tweet.id, cls: 'tweet'},
+				div({cls:'user'}, a({href: 'http://twitter.com/' + tweet.username}, tweet.username)),
+				div({cls:'text'}, tweet.status)
+			)
+		});
+		
+		var tweets_seen = [];
+		var username = '';
+		var password = '';
+		var check_interval = 0;
+		
+		var update_tweets = function(){
+			$.post('/update', {user: username, pass: password}, function(d){
+				$(d.tweets).each(function(){
+					if($.inArray(this.id, tweets_seen) == -1){
+						var tweet = $(Jaml.render('tweet', this)).hide();
+						tweet.appendTo('#tweets').slideDown().effect("highlight", {}, 6000)
+						tweets_seen.push(this.id);
+					}
+				});
+			}, 'json');
+		}
+		
+		var begin = function(){
+			$('#use_msg').hide();
+			update_tweets();
+			clearInterval(check_interval);
+			var check_interval = setInterval(update_tweets, 20000);
+			$('select#freq_update').unbind();
+			$('select#freq_update').change(function(){
+				clearInterval(check_interval);
+				check_interval = setInterval(update_tweets, parseInt($(this).val()) * 1000);
+			});
+		}
+		
+		google.setOnLoadCallback(function(){
+			$('#login_btn').click(function(){
+				username = $('#username_field').val();
+				password = $('#password_field').val();
+				begin();
+			});
+		});
+	</script>
+</head>
+<body>
+	<div id="menu">
+		<div id="options">
+			<label for="freq">Check every </label>
+			<select name="freq" id="freq_update">
+				<option value="40">40 Seconds</option>
+				<option value="60">minute</option>
+				<option value="120">two minutes</option>
+				<option value="300">five minutes</option>
+				<option value="600">10 minutes</option>
+			</select>
+		</div>
+		<div id="signin">
+			<label for="username">Username</label>
+			<input type="text" name="username" id="username_field" />
+			<label for="password">Password</label>
+			<input type="password" name="password" id="password_field" />
+			<input id="login_btn" type="submit" value="Begin" />
+		</div>
+	</div>
+	<div id="use_msg">
+		<p>
+			Please enter your Twitter username and password to begin.
+		</p>
+	</div>
+	<div id="tweets"></div>
+</body>
+</html>
